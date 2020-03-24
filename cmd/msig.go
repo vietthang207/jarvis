@@ -389,7 +389,8 @@ var initMsigCmd = &cobra.Command{
 		data, err := promptTxData(config.MsigTo, config.PrefillParams)
 		if err != nil {
 			fmt.Printf("Couldn't pack multisig calling data: %s\n", err)
-			return
+			fmt.Printf("Continue with EMPTY CALLING DATA\n")
+			data = []byte{}
 		}
 
 		a, err := util.GetABI(config.To, config.Network)

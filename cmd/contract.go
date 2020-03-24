@@ -343,9 +343,9 @@ func showTxInfoToConfirm(from string, tx *types.Transaction) error {
 	if err != nil {
 		return fmt.Errorf("Can't decode method call: %s", err)
 	}
-	fmt.Printf("Method: %s\n", method)
+	fmt.Printf("\nMethod: %s\n", method)
 	for _, param := range params {
-		fmt.Printf("%s: %s (%s)\n", param.Name, param.Value, param.Type)
+		fmt.Printf(" . %s: %s (%s)\n", param.Name, param.Value, param.Type)
 	}
 	util.PrintGnosis(gnosisResult)
 	return nil

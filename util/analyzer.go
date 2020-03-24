@@ -45,16 +45,16 @@ func PrintGnosis(result *txanalyzer.GnosisResult) {
 
 func printGnosisToWriter(result *txanalyzer.GnosisResult, writer io.Writer) {
 	if result != nil {
-		fmt.Fprintf(writer, "Gnosis multisig init data:\n")
+		fmt.Fprintf(writer, "     Gnosis multisig init data: ")
 		if result.Method == "" {
 			fmt.Fprintf(writer, "Couldn't decode gnosis call method\n")
 			return
 		}
-		fmt.Fprintf(writer, "Contract: %s - %s\n", result.Contract.Address, nameWithColor(result.Contract.Name))
-		fmt.Fprintf(writer, "Method: %s\n", result.Method)
-		fmt.Fprintf(writer, "Params:\n")
+		fmt.Fprintf(writer, "\n     Contract: %s - %s\n", result.Contract.Address, nameWithColor(result.Contract.Name))
+		fmt.Fprintf(writer, "     Method: %s\n", result.Method)
+		fmt.Fprintf(writer, "     Params:\n")
 		for _, param := range result.Params {
-			fmt.Fprintf(writer, "    %s (%s): %s\n", param.Name, param.Type, param.Value)
+			fmt.Fprintf(writer, "       %s (%s): %s\n", param.Name, param.Type, param.Value)
 		}
 	}
 }
