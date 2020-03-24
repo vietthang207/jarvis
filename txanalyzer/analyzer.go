@@ -91,6 +91,9 @@ func findEventById(a *abi.ABI, topic []byte) (*abi.Event, error) {
 }
 
 func (self *TxAnalyzer) AnalyzeMethodCall(abi *abi.ABI, data []byte) (method string, params []ParamResult, gnosisResult *GnosisResult, err error) {
+	if _, err := abi.MethodById(data); err != nil {
+		abi, _ = ethutils.GetERC20ABI()
+	}
 	m, err := abi.MethodById(data)
 	if err != nil {
 		return "", []ParamResult{}, nil, err
@@ -111,7 +114,12 @@ func (self *TxAnalyzer) AnalyzeMethodCall(abi *abi.ABI, data []byte) (method str
 
 	if isGnosisMultisig(m, ps) {
 		// fmt.Printf("    ==> Gnosis Multisig init data:\n")
-		gnosisResult = self.gnosisMultisigInitData(m.Inputs, ps)
+		contract := ps[0].(common.Address)
+		a, err := self.reader.GetABI(contract.Hex())
+		if err != nil {
+			a, _ = ethutils.GetERC20ABI()
+		}
+		gnosisResult = self.gnosisMultisigInitData(a, ps)
 	}
 	return method, params, gnosisResult, nil
 }
@@ -191,13 +199,14 @@ func isGnosisMultisig(method *abi.Method, params []interface{}) bool {
 	return true
 }
 
-func (self *TxAnalyzer) gnosisMultisigInitData(inputs []abi.Argument, params []interface{}) (result *GnosisResult) {
+func (self *TxAnalyzer) gnosisMultisigInitData(a *abi.ABI, params []interface{}) (result *GnosisResult) {
 	result = &GnosisResult{
 		Contract: AddressResult{},
 		Method:   "",
 		Params:   []ParamResult{},
 		Error:    "",
 	}
+	var err error
 	contract := params[0].(common.Address)
 	// fmt.Printf("    Contract: %s (%s)\n", contract.Hex(), "TODO")
 	result.Contract = AddressResult{
@@ -205,12 +214,14 @@ func (self *TxAnalyzer) gnosisMultisigInitData(inputs []abi.Argument, params []i
 		Name:    self.addrdb.GetName(contract.Hex()),
 	}
 	data := params[2].([]byte)
-	abi, err := self.reader.GetABI(contract.Hex())
-	if err != nil {
+	if a == nil {
 		result.Error = fmt.Sprintf("Cannot get abi of the contract: %s", err)
 		return result
 	}
-	method, err := abi.MethodById(data)
+	if _, err = a.MethodById(data); err != nil {
+		a, _ = ethutils.GetERC20ABI()
+	}
+	method, err := a.MethodById(data)
 	if err != nil {
 		result.Error = fmt.Sprintf("Cannot get corresponding method from the ABI: %s", err)
 		return result
