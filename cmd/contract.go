@@ -29,7 +29,12 @@ func promptFunctionCallData(contractAddress string, prefills []string, mode stri
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	a, err := util.GetABI(contractAddress, config.Network)
+	var a *abi.ABI
+	if config.ForceERC20ABI {
+		a, err = ethutils.GetERC20ABI()
+	} else {
+		a, err = util.GetABI(contractAddress, config.Network)
+	}
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("Couldn't get the ABI: %s", err)
 	}
@@ -246,7 +251,13 @@ var txContractCmd = &cobra.Command{
 }
 
 func allZeroParamFunctions(contractAddress string) (*abi.ABI, []abi.Method, error) {
-	a, err := util.GetABI(contractAddress, config.Network)
+	var a *abi.ABI
+	var err error
+	if config.ForceERC20ABI {
+		a, err = ethutils.GetERC20ABI()
+	} else {
+		a, err = util.GetABI(contractAddress, config.Network)
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("Couldn't get the ABI: %s", err)
 	}
@@ -334,12 +345,18 @@ func showTxInfoToConfirm(from string, tx *types.Transaction) error {
 	fmt.Printf("Nonce: %d\n", tx.Nonce())
 	fmt.Printf("Gas price: %f gwei\n", ethutils.BigToFloat(tx.GasPrice(), 9))
 	fmt.Printf("Gas limit: %d\n", tx.Gas())
-	abi, err := util.GetABI(tx.To().Hex(), config.Network)
+	var a *abi.ABI
+	var err error
+	if config.ForceERC20ABI {
+		a, err = ethutils.GetERC20ABI()
+	} else {
+		a, err = util.GetABI(tx.To().Hex(), config.Network)
+	}
 	if err != nil {
 		return fmt.Errorf("Getting abi of the contract failed: %s", err)
 	}
 	analyzer := txanalyzer.NewAnalyzer()
-	method, params, gnosisResult, err := analyzer.AnalyzeMethodCall(abi, tx.Data())
+	method, params, gnosisResult, err := analyzer.AnalyzeMethodCall(a, tx.Data())
 	if err != nil {
 		return fmt.Errorf("Can't decode method call: %s", err)
 	}
@@ -373,6 +390,7 @@ func init() {
 	txContractCmd.PersistentFlags().Uint64VarP(&config.MethodIndex, "method-index", "M", 0, "Index of the method in alphabeth sorted method list of the contract. Index counts from 1.")
 	txContractCmd.PersistentFlags().BoolVarP(&config.DontBroadcast, "dry", "d", false, "Will not broadcast the tx, only show signed tx.")
 	txContractCmd.PersistentFlags().BoolVarP(&config.DontWaitToBeMined, "no-wait", "F", false, "Will not wait the tx to be mined.")
+	txContractCmd.PersistentFlags().BoolVarP(&config.ForceERC20ABI, "erc20-abi", "e", false, "Use ERC20 ABI where possible.")
 	txContractCmd.Flags().Float64VarP(&config.Value, "amount", "v", 0, "Amount of eth to send. It is in eth value, not wei.")
 	txContractCmd.MarkFlagRequired("from")
 	contractCmd.AddCommand(txContractCmd)
@@ -380,6 +398,7 @@ func init() {
 	readContractCmd.PersistentFlags().StringVarP(&config.PrefillStr, "prefills", "I", "", "Prefill params string. Each param is separated by | char. If the param is \"?\", user input will be prompted.")
 	readContractCmd.PersistentFlags().Uint64VarP(&config.MethodIndex, "method-index", "M", 0, "Index of the method in alphabeth sorted method list of the contract. Index counts from 1. This param will be IGNORED if -a or --all is true.")
 	readContractCmd.PersistentFlags().BoolVarP(&config.AllZeroParamsMethods, "all", "a", false, "Read all functions that don't have any params")
+	readContractCmd.PersistentFlags().BoolVarP(&config.ForceERC20ABI, "erc20-abi", "e", false, "Use ERC20 ABI where possible.")
 	readContractCmd.PersistentFlags().Int64VarP(&config.AtBlock, "block", "b", -1, "Specify the block to read at. Default value indicates reading at latest state of the chain.")
 	contractCmd.AddCommand(readContractCmd)
 	// contractCmd.AddCommand(govInfocontractCmd)
